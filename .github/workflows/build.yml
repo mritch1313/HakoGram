@@ -82,6 +82,17 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "See uploaded gradle.log artifact for full details" >> $GITHUB_STEP_SUMMARY
 
+      - name: Comment PR with excerpt
+        if: failure()
+        run: |
+          echo "Build failed, tail of gradle.log:" > /tmp/comment.txt
+          echo '```' >> /tmp/comment.txt
+          tail -n 300 gradle.log >> /tmp/comment.txt || echo "no log" >> /tmp/comment.txt
+          echo '```' >> /tmp/comment.txt
+          gh pr comment 1 --repo ${{ github.repository }} --body-file /tmp/comment.txt || echo "comment failed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
