@@ -60,9 +60,27 @@ jobs:
 
       - name: Build HakoGram (universal afatRelease)
         run: |
-          ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace --info
+          set -o pipefail
+          ./gradlew :TMessagesProj_App:assembleAfatRelease --stacktrace 2>&1 | tee gradle.log
         env:
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+
+      - name: Upload gradle log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gradle-log
+          path: gradle.log
+          retention-days: 14
+
+      - name: Publish log excerpt to summary
+        if: failure()
+        run: |
+          echo "## Build failure excerpt" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -n 500 gradle.log >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "See uploaded gradle.log artifact for full details" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
