@@ -1,0 +1,31 @@
+name: Android build
+on:
+  push:
+    branches: [master, 'arena/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - name: Install NDK
+        run: sdkmanager "ndk;27.2.12479018" "cmake;3.22.1"
+      - name: Build Android APK variants
+        run: ./gradlew --no-daemon :TMessagesProj_App:assembleAfatRelease :TMessagesProj_App:assembleBundleAfatRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hakogram-android-apks
+          path: TMessagesProj_App/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
