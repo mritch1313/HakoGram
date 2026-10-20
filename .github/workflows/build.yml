@@ -7,6 +7,11 @@ on:
     branches: [ master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -89,7 +94,11 @@ jobs:
           echo '```' >> /tmp/comment.txt
           tail -n 300 gradle.log >> /tmp/comment.txt || echo "no log" >> /tmp/comment.txt
           echo '```' >> /tmp/comment.txt
-          gh pr comment 1 --repo ${{ github.repository }} --body-file /tmp/comment.txt || echo "comment failed"
+          cat /tmp/comment.txt
+          # try gh pr comment
+          gh pr comment 1 --repo ${{ github.repository }} --body-file /tmp/comment.txt || echo "gh pr comment failed"
+          # fallback via api
+          gh api repos/${{ github.repository }}/issues/1/comments --raw-field body="$(cat /tmp/comment.txt | head -c 65000)" || echo "api comment failed"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
