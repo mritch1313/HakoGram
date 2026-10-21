@@ -877,6 +877,11 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void lockFiltersInternal() {
+        if (org.telegram.messenger.hakogram.HakoConfig.isUnlimitedFolders()) {
+            boolean ch = false; for (DialogFilter f : dialogFilters) if (f.locked) { f.locked = false; ch = true; }
+            if (ch) getNotificationCenter().postNotificationName(NotificationCenter.dialogFiltersUpdated);
+            return;
+        }
         boolean changed = false;
         if (!getUserConfig().isPremium() && dialogFilters.size() - 1 > dialogFiltersLimitDefault) {
             int n = dialogFilters.size() - 1 - dialogFiltersLimitDefault;
@@ -6683,6 +6688,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isChatNoForwards(TLRPC.Chat chat) {
+        try { if (chat != null && org.telegram.messenger.hakogram.HakoConfig.isForwardEnabled() && org.telegram.messenger.hakogram.HakoConfig.isForwardAllowedForChat(chat)) return false; } catch (Exception ignored) {}
         if (chat == null) {
             return false;
         }
@@ -6708,6 +6714,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isUserNoForwards(TLRPC.UserFull userFull) {
+        try { if (userFull != null && org.telegram.messenger.hakogram.HakoConfig.isForwardEnabled() && org.telegram.messenger.hakogram.HakoConfig.isForwardAllowedForUser(userFull)) return false; } catch (Exception ignored) {}
         if (userFull == null) {
             return false;
         }
@@ -10519,6 +10526,10 @@ public class MessagesController extends BaseController implements NotificationCe
 
                         TL_account.updateStatus req = new TL_account.updateStatus();
                         req.offline = false;
+                        // HAKOGRAM: phantom - don't send online status
+                        if (org.telegram.messenger.hakogram.HakoConfig.isNoOnline()) {
+                            return;
+                        }
                         statusRequest = getConnectionsManager().sendRequest(req, (response, error) -> {
                             if (error == null) {
                                 lastStatusUpdateTime = System.currentTimeMillis();
@@ -11367,6 +11378,10 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean sendTyping(long dialogId, long threadMsgId, int action, String emojicon, int classGuid) {
+        // HAKOGRAM: phantom mode - block typing indicators
+        if (org.telegram.messenger.hakogram.HakoConfig.isNoTyping()) {
+            return false;
+        }
         if (action < 0 || action >= sendingTypings.length || dialogId == 0) {
             return false;
         }
@@ -14378,6 +14393,10 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void markMessageContentAsRead(MessageObject messageObject) {
+        // HAKOGRAM: phantom mode - block reading message contents
+        if (org.telegram.messenger.hakogram.HakoConfig.isNoReadMessages()) {
+            return;
+        }
         if (messageObject.scheduled) {
             return;
         }
@@ -14657,6 +14676,10 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void markDialogAsRead(long dialogId, int maxPositiveId, int maxNegativeId, int maxDate, boolean popup, long threadId, int countDiff, boolean readNow, int scheduledCount) {
+        // HAKOGRAM: phantom mode - block read receipts if enabled
+        if (org.telegram.messenger.hakogram.HakoConfig.isNoReadMessages()) {
+            return;
+        }
         boolean createReadTask;
 
         if (threadId != 0) {
