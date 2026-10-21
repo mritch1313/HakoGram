@@ -877,6 +877,11 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public void lockFiltersInternal() {
+        if (org.telegram.messenger.hakogram.HakoConfig.isUnlimitedFolders()) {
+            boolean ch = false; for (DialogFilter f : dialogFilters) if (f.locked) { f.locked = false; ch = true; }
+            if (ch) getNotificationCenter().postNotificationName(NotificationCenter.dialogFiltersUpdated);
+            return;
+        }
         boolean changed = false;
         if (!getUserConfig().isPremium() && dialogFilters.size() - 1 > dialogFiltersLimitDefault) {
             int n = dialogFilters.size() - 1 - dialogFiltersLimitDefault;
@@ -6683,6 +6688,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isChatNoForwards(TLRPC.Chat chat) {
+        try { if (chat != null && org.telegram.messenger.hakogram.HakoConfig.isForwardEnabled() && org.telegram.messenger.hakogram.HakoConfig.isForwardAllowedForChat(chat)) return false; } catch (Exception ignored) {}
         if (chat == null) {
             return false;
         }
@@ -6708,6 +6714,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isUserNoForwards(TLRPC.UserFull userFull) {
+        try { if (userFull != null && org.telegram.messenger.hakogram.HakoConfig.isForwardEnabled() && org.telegram.messenger.hakogram.HakoConfig.isForwardAllowedForUser(userFull)) return false; } catch (Exception ignored) {}
         if (userFull == null) {
             return false;
         }

@@ -38,6 +38,14 @@ public class HakoConfig {
     private static final String KEY_SLEZHKA_SELECTED_USERS = "slezka_selected_users"; // csv of user ids
     private static final String KEY_SLEZHKA_NOTIFY_METHODS = "slezka_notify_methods"; // csv 1=SMS,2=TG,3=VIB,4=FLASH
 
+    // Forwarding (Параметры)
+    private static final String KEY_FORWARD_ENABLED = "forward_enabled";
+    private static final String KEY_FORWARD_CHANNELS = "forward_channels";
+    private static final String KEY_FORWARD_GROUPS = "forward_groups";
+    private static final String KEY_FORWARD_PROTECTED = "forward_protected";
+    private static final String KEY_FORWARD_ALL = "forward_all";
+    private static final String KEY_UNLIMITED_FOLDERS = "unlimited_folders";
+
     private static SharedPreferences getPrefs() {
         Context ctx = ApplicationLoader.applicationContext;
         if (ctx == null) {
@@ -211,4 +219,84 @@ public class HakoConfig {
         }
         return sb.toString();
     }
+
+    // ---- Forward (Параметры) ----
+    public static boolean isForwardEnabled() { return getBool(KEY_FORWARD_ENABLED, false); }
+    public static void setForwardEnabled(boolean v) { putBool(KEY_FORWARD_ENABLED, v); }
+    public static boolean isForwardFromChannels() { return getBool(KEY_FORWARD_CHANNELS, false); }
+    public static void setForwardFromChannels(boolean v) { putBool(KEY_FORWARD_CHANNELS, v); }
+    public static boolean isForwardFromGroups() { return getBool(KEY_FORWARD_GROUPS, false); }
+    public static void setForwardFromGroups(boolean v) { putBool(KEY_FORWARD_GROUPS, v); }
+    public static boolean isForwardFromProtected() { return getBool(KEY_FORWARD_PROTECTED, false); }
+    public static void setForwardFromProtected(boolean v) { putBool(KEY_FORWARD_PROTECTED, v); }
+    public static boolean isForwardAll() { return getBool(KEY_FORWARD_ALL, false); }
+    public static void setForwardAll(boolean v) {
+        putBool(KEY_FORWARD_ALL, v);
+        if (v) {
+            putBool(KEY_FORWARD_CHANNELS, true);
+            putBool(KEY_FORWARD_GROUPS, true);
+            putBool(KEY_FORWARD_PROTECTED, true);
+        }
+    }
+    public static boolean isForwardAllowedForChat(org.telegram.tgnet.TLRPC.Chat chat) {
+        if (!isForwardEnabled()) return false;
+        if (isForwardAll()) return true;
+        if (chat == null) return isForwardFromProtected();
+        if (chat.noforwards && isForwardFromProtected()) return true;
+        try {
+            boolean isChannel = org.telegram.messenger.ChatObject.isChannel(chat);
+            boolean isMegagroup = org.telegram.messenger.ChatObject.isMegagroup(chat);
+            if (isChannel && !isMegagroup) {
+                return isForwardFromChannels();
+            } else {
+                return isForwardFromGroups();
+            }
+        } catch (Exception e) {
+            return isForwardFromProtected();
+        }
+    }
+    public static boolean isForwardAllowedForUser(org.telegram.tgnet.TLRPC.UserFull userFull) {
+        if (!isForwardEnabled()) return false;
+        if (isForwardAll()) return true;
+        if (userFull != null && (userFull.noforwards_my_enabled || userFull.noforwards_peer_enabled)) {
+            return isForwardFromProtected();
+        }
+        return false;
+    }
+    public static boolean isForwardAllowedForMessage(org.telegram.messenger.MessageObject msg) {
+        if (!isForwardEnabled()) return false;
+        if (isForwardAll()) return true;
+        if (msg == null || msg.messageOwner == null) return false;
+        if (msg.messageOwner.noforwards) {
+            if (isForwardFromProtected()) return true;
+            try {
+                long dialogId = msg.getDialogId();
+                if (dialogId < 0) {
+                    org.telegram.tgnet.TLRPC.Chat chat = org.telegram.messenger.MessagesController.getInstance(msg.currentAccount).getChat(-dialogId);
+                    if (chat != null && isForwardAllowedForChat(chat)) return true;
+                }
+            } catch (Exception ignored) {}
+            return false;
+        }
+        try {
+            long dialogId = msg.getDialogId();
+            if (dialogId < 0) {
+                org.telegram.tgnet.TLRPC.Chat chat = org.telegram.messenger.MessagesController.getInstance(msg.currentAccount).getChat(-dialogId);
+                if (chat != null && chat.noforwards) {
+                    return isForwardFromProtected() || isForwardAllowedForChat(chat);
+                }
+            } else if (dialogId > 0) {
+                org.telegram.messenger.MessagesController mc = org.telegram.messenger.MessagesController.getInstance(msg.currentAccount);
+                org.telegram.tgnet.TLRPC.UserFull uf = mc.getUserFull(dialogId);
+                if (uf != null && (uf.noforwards_my_enabled || uf.noforwards_peer_enabled)) {
+                    return isForwardFromProtected();
+                }
+            }
+        } catch (Exception ignored) {}
+        return false;
+    }
+
+    // ---- Unlimited folders ----
+    public static boolean isUnlimitedFolders() { return getBool(KEY_UNLIMITED_FOLDERS, false); }
+    public static void setUnlimitedFolders(boolean v) { putBool(KEY_UNLIMITED_FOLDERS, v); }
 }

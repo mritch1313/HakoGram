@@ -57,6 +57,7 @@ public class HakoCategoriesActivity extends BaseFragment {
         items.add(UItem.asButton(3, R.drawable.settings_data, "Удалёнки"));
         items.add(UItem.asButton(4, R.drawable.settings_power, "Контроль"));
         items.add(UItem.asButton(5, R.drawable.settings_faq, "Докс (beta)"));
+        items.add(UItem.asButton(6, R.drawable.settings_data, "Параметры"));
         items.add(UItem.asShadow(null));
         // info footer: use header as placeholder for info text via shadow
         items.add(UItem.asHeader("Выберите категорию для настройки"));
@@ -69,6 +70,9 @@ public class HakoCategoriesActivity extends BaseFragment {
                 break;
             case 2:
                 presentFragment(new HakoSlezhkaActivity());
+                break;
+            case 6:
+                presentFragment(new HakoParamsActivity());
                 break;
             case 3:
             case 4:

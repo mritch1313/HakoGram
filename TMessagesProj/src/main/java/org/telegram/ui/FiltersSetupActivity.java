@@ -709,7 +709,7 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
                 if (filter == null || filter.isDefault()) {
                     return;
                 }
-                if (filter.locked) {
+                if (filter.locked && !org.telegram.messenger.hakogram.HakoConfig.isUnlimitedFolders()) {
                     showDialog(new LimitReachedBottomSheet(this, context, LimitReachedBottomSheet.TYPE_FOLDERS, currentAccount, null));
                 } else {
                     presentFragment(new FilterCreateActivity(filter));
@@ -733,10 +733,10 @@ public class FiltersSetupActivity extends BaseFragment implements NotificationCe
 
     public void createFolder(INavigationLayout navigationLayout) {
         final int count = getMessagesController().getDialogFilters().size();
-        if (
+        if (!org.telegram.messenger.hakogram.HakoConfig.isUnlimitedFolders() && (
             count - 1 >= getMessagesController().dialogFiltersLimitDefault && !getUserConfig().isPremium() ||
             count >= getMessagesController().dialogFiltersLimitPremium
-        ) {
+        )) {
             showDialog(new LimitReachedBottomSheet(this, getContext(), LimitReachedBottomSheet.TYPE_FOLDERS, currentAccount, null));
         } else if (navigationLayout != null) {
             navigationLayout.presentFragment(new FilterCreateActivity());
